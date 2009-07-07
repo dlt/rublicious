@@ -1,0 +1,6 @@
+
+I'm reading Programming The Collective Intelligence and all of the book's examples are in Python, so I have to port a lot of stuff.  
+
+This library is one of those ports and was extracted from my experimentations on building recommendation systems for delicious links/tags.
+
+Have fun and feel free to copy, modify and distribute.
