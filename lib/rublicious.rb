@@ -22,14 +22,8 @@ module Rublicious
   end
 
   class Client
-    include HTTParty
-
     def initialize
       @handlers = []
-    end
-
-    def get(*params)
-      handle_response self.class.get(*params)
     end
 
     def add_response_handler(&block)
@@ -37,6 +31,7 @@ module Rublicious
     end
 
     def handle_response(response)
+      default_handler response
       if @handlers.any?
         @handlers.each do |handler|
           response = handler.call(response)
@@ -46,12 +41,13 @@ module Rublicious
     end
 
     def default_handler(response)
-      response.each do |item|
-        meths = extract_method_names(item)
-        meths.each do |method_name|
-          add_method(item, method_name)
-        end
-      end
+      extract_hash_method_names response if response.is_a? Hash
+      extract_array_method_names response if response.is_a? Array
+    end
+
+    private
+    def get(*params)
+      handle_response self.class.get(*params)
     end
 
     def query_string(tag, count)
@@ -66,35 +62,63 @@ module Rublicious
 
       response_sample.keys.inject(meths_array) do |arr, key|
         method_name = prefix + key
+        method_name.gsub!(':', '_')
         arr << method_name
 
-        if response_sample[key].is_a?(Hash)
-          arr << extract_methods(response_sample[key], method_name + '_')
+        value = response_sample[key]
+        if value.is_a?(Hash)
+          arr << extract_hash_method_names(value, method_name + '_')
+        elsif value.is_a?(Array) && all_items_are_hashes(value)
+          arr << extract_array_method_names(value, method_name + '_')
         end
+
+        meths_array
       end
 
       meths_array.flatten
     end
 
-    def add_method(response_item, method_name)
-      keys = method_name.split '_'
-
-      puts "defining method #{method_name} on #{response_item.object_id}"
-      response_item.instance_eval(%Q{
-          def #{method_name}
-            result = self
-            while key = keys.pop
-              result = result[key]
-            end
-            result
-          end
-        }
-      )
+    def extract_hash_method_names(hash, prefix = '')
+      meths = extract_method_names(hash, prefix)
+      meths.each do |method_name|
+        add_method(hash, method_name)
+      end
     end
 
+    def extract_array_method_names(array, prefix = '')
+      array.each {|item| extract_hash_method_names(item, prefix)}
+    end
+
+    def add_method(response_item, method_name)
+      keys = method_name.split '_'
+      method = method_string(method_name, keys)
+      response_item.instance_eval method
+    end
+   
+
+    def all_items_are_hashes(array)
+      array.each do |item|
+        return false unless item.is_a? Hash
+      end
+      return true
+    end
+
+    def method_string(method_name, keys)
+      hash_accessor = hash_keys_as_string(keys)
+      %Q{
+        def #{method_name}
+          self#{hash_accessor}
+        end
+      }
+    end
+
+    def hash_keys_as_string(keys)
+      keys.map {|k| "['#{k}']"}.join
+    end
   end
 
   class XMLClient < Client
+    include HTTParty
     base_uri 'http://feeds.delicious.com/v2/xml'
     format :xml
 
@@ -117,6 +141,7 @@ module Rublicious
   end
 
   class JSONClient < Client
+    include HTTParty
     base_uri 'http://feeds.delicious.com/v2/json'
     format :json
 
