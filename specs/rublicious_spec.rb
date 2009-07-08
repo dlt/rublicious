@@ -8,7 +8,7 @@ describe Rublicious::Client do
       'rss' => 'items',
       'links' => ['www.google.com', 'www.google.com.br', 'a string'],
       'category' => {'a' => 1},
-      'array' => [{'arritem' => 2}]
+      'array' => [{'arr:item' => 2}]
     }
   end
 
@@ -28,7 +28,7 @@ describe Rublicious::Client do
     @resp_hash.respond_to?('category').should be_true
     @resp_hash.respond_to?('category_a').should be_true
     @resp_hash.respond_to?('array').should be_true
-    @resp_hash.array.first.respond_to?('arritem').should be_true
+    @resp_hash.array.first.respond_to?('arr_item').should be_true
 
   end
 
@@ -48,7 +48,7 @@ describe Rublicious::Client do
 
     @resp_hash.category_a.should == 1
     @resp_hash.category_a.should == @resp_hash.category['a']
-    @resp_hash.array.first.arritem.should == 2
+    @resp_hash.array.first.arr_item.should == 2
   end
 
 end
