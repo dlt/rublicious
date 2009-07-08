@@ -4,7 +4,12 @@ describe Rublicious::Client do
   before do
     @feeds = Rublicious::Client.new
     @response = [{'a' => 1, 'b' => 2}, {'b' => {'c' => {'d' => 10}}}]
-    @resp_hash = {'rss' => 'items', 'links' => ['www.google.com', 'www.google.com.br', 'a string']}
+    @resp_hash = {
+      'rss' => 'items',
+      'links' => ['www.google.com', 'www.google.com.br', 'a string'],
+      'category' => {'a' => 1},
+      'array' => [{'arritem' => 2}]
+    }
   end
 
   it "should have a default handler that add methods based on the response hash keys" do
@@ -20,6 +25,11 @@ describe Rublicious::Client do
 
     @feeds.default_handler @resp_hash
     @resp_hash.respond_to?('rss').should be_true
+    @resp_hash.respond_to?('category').should be_true
+    @resp_hash.respond_to?('category_a').should be_true
+    @resp_hash.respond_to?('array').should be_true
+    @resp_hash.array.first.respond_to?('arritem').should be_true
+
   end
 
   it "should have metaprogrammed methods to get hash values" do
@@ -31,7 +41,14 @@ describe Rublicious::Client do
 
     @feeds.default_handler @resp_hash
     @resp_hash.rss.should == 'items'
+
     @resp_hash.links.should include('a string')
+    @resp_hash.category.keys.should include('a')
+    @resp_hash.category.keys.should_not include('b')
+
+    @resp_hash.category_a.should == 1
+    @resp_hash.category_a.should == @resp_hash.category['a']
+    @resp_hash.array.first.arritem.should == 2
   end
 
 end
