@@ -58,24 +58,16 @@ module Rublicious
     end
 
     def extract_method_names(response_sample, prefix = '')
-      meths_array = []
+      response_sample.each_pair.inject([]) do |arr, (key, value)|
+        method_name = prefix + key.gsub(':', '_')
 
-      response_sample.keys.inject(meths_array) do |arr, key|
-        method_name = prefix + key
-        method_name.gsub!(':', '_')
-        arr << method_name
-
-        value = response_sample[key]
         if value.is_a?(Hash)
           arr << extract_hash_method_names(value, method_name + '_')
         elsif value.is_a?(Array) && all_items_are_hashes(value)
           arr << extract_array_method_names(value, method_name + '_')
         end
-
-        meths_array
-      end
-
-      meths_array.flatten
+        arr << method_name
+      end.flatten
     end
 
     def extract_hash_method_names(hash, prefix = '')
@@ -83,10 +75,11 @@ module Rublicious
       meths.each do |method_name|
         add_method(hash, method_name)
       end
+      meths
     end
 
     def extract_array_method_names(array, prefix = '')
-      array.each {|item| extract_hash_method_names(item, prefix)}
+      array.collect {|item| extract_hash_method_names(item, '')}.flatten
     end
 
     def add_method(response_item, method_name)
@@ -95,7 +88,6 @@ module Rublicious
       response_item.instance_eval method
     end
    
-
     def all_items_are_hashes(array)
       array.each do |item|
         return false unless item.is_a? Hash
