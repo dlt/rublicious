@@ -59,7 +59,7 @@ module Rublicious
 
     def extract_method_names(response_sample, prefix = '')
       response_sample.each_pair.inject([]) do |arr, (key, value)|
-        method_name = prefix + key.gsub(':', '_')
+        method_name = prefix + key
 
         if value.is_a?(Hash)
           arr << extract_hash_method_names(value, method_name + '_')
@@ -84,7 +84,7 @@ module Rublicious
 
     def add_method(response_item, method_name)
       keys = method_name.split '_'
-      method = method_string(method_name, keys)
+      method = method_string(method_name.gsub(':','_'), keys)
       response_item.instance_eval method
     end
    
